@@ -10,33 +10,39 @@ from dateutil.relativedelta import relativedelta
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('inputfile', nargs=1)
+    parser.add_argument('inputfile', nargs=1, type=argparse.FileType('r'))
+    parser.add_argument('-c', '--columns', nargs='*')
+    parser.add_argument('--show_all_matches', action='store_true')
     
     args = parser.parse_args()
 
-    with open(args.inputfile[0], newline='') as csvfile:
-        reader = csv.DictReader(csvfile)
+    # with open(args.inputfile[0], newline='') as csvfile:
+    reader = csv.DictReader(args.inputfile[0])
 
-        ppif = PpiFinder()
+    ppif = PpiFinder(columns=args.columns)
 
-        result = ppif.analyse(reader)
+    result = ppif.analyse(reader)
 
     report = ''
     for c, r in result.items():
-        report += found_message(c, 'UHL System Number', r)
-        report += found_message(c, 'postcode', r)
-        report += found_message(c, 'NHS Number', r)
-        report += found_message(c, 'Date of Birth', r)
+        report += found_message(c, 'UHL System Number', r, args.show_all_matches)
+        report += found_message(c, 'postcode', r, args.show_all_matches)
+        report += found_message(c, 'NHS Number', r, args.show_all_matches)
+        report += found_message(c, 'Date of Birth', r, args.show_all_matches)
         if len(r['Name']) > 0:
             report += f'Column "{c}" may contain the names: {", ".join(r["Name"])}\n'
 
     print(report)
 
-def found_message(column, ppi_name, result):
+def found_message(column, ppi_name, result, show_all_matches):
     values = result[ppi_name]
 
-    if values is not None:
-        return f'Column "{column}" may contain a {ppi_name} first found in row {values["row"]} in value {values["value"]}\n'
+    if len(values) > 0:
+        if show_all_matches:
+            values_values = ';\t'.join([f'Row {v["row"]}: {v["value"]}' for v in values])
+            return f'Column "{column}" may contain a {ppi_name} in values:\n\n {values_values}\n'
+        else:
+            return f'Column "{column}" may contain a {ppi_name} first found in row {values[0]["row"]} in values: {values[0]["value"]}\n'
     else:
         return ''
 
@@ -50,40 +56,40 @@ class PpiFinder():
     re_ansi_dates = re.compile(r'(?P<year>\d{4})[\\ -]?(?P<month>\d{2})[\\ -]?(?P<day>\d{2})(?:[ T]\d{2}:\d{2}:\d{2})?(?:\.\d+)?(?:[+-]\d{2}:\d{2})?')
 
 
-    def __init__(self):
+    def __init__(self, columns=None):
+        self.columns = columns
+
         with open('_names.txt', 'r') as f:
             self.names = {n for n in f.readlines()}
 
     def analyse(self, csv):
 
+        cols = self.columns or csv.fieldnames
+
         errors = {c: {
-            'UHL System Number': None,
-            'postcode': None,
-            'NHS Number': None,
-            'Date of Birth': None,
+            'UHL System Number': [],
+            'postcode': [],
+            'NHS Number': [],
+            'Date of Birth': [],
             'Name': set(),
-        } for c in csv.fieldnames}
+        } for c in cols}
 
         for i, row in enumerate(csv):
             if i % 1000 == 0:
                 print(f"Analysed {i:,} rows")
 
-            for c in csv.fieldnames:
+            for c in cols:
                 value = row[c]
                 e = errors[c]
 
-                if e['UHL System Number'] is None:
-                    if self.contains_uhl_system_number(value):
-                        e['UHL System Number'] = {'row': i, 'value': value}
-                if e['postcode'] is None:
-                    if self.contains_postcode(value):
-                        e['postcode'] = {'row': i, 'value': value}
-                if e['NHS Number'] is None:
-                    if self.contains_nhs_number(value):
-                        e['NHS Number'] = {'row': i, 'value': value}
-                if e['Date of Birth'] is None:
-                    if self.contains_dob(value):
-                        e['Date of Birth'] = {'row': i, 'value': value}
+                if self.contains_uhl_system_number(value):
+                    e['UHL System Number'].append({'row': i, 'value': value})
+                if self.contains_postcode(value):
+                    e['postcode'].append({'row': i, 'value': value})
+                if self.contains_nhs_number(value):
+                    e['NHS Number'].append({'row': i, 'value': value})
+                if self.contains_dob(value):
+                    e['Date of Birth'].append({'row': i, 'value': value})
                 e['Name'].update(self.contains_name(value))
 
         return errors
