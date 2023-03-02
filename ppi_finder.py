@@ -50,11 +50,11 @@ def found_message(column, ppi_name, result, show_all_matches):
 class PpiFinder():
     re_numbers = re.compile(r'\d')
     re_words = re.compile(r'\W+')
-    re_uhl_s_number = re.compile(r'([SRFG]\d{7}|[U]\d{7}.*|LB\d{7}|RTD[\-0-9]*)')
-    re_postcodes = re.compile(r'([Gg][Ii][Rr] ?0[Aa]{2})|((([A-Za-z][0-9]{1,2})|(([A-Za-z][A-Ha-hJ-Yj-y][0-9]{1,2})|(([A-Za-z][0-9][A-Za-z])|([A-Za-z][A-Ha-hJ-Yj-y][0-9][A-Za-z]?))))\s?[0-9][A-Za-z]{2})')
+    re_uhl_s_number = re.compile(r'\b([SRFG]\d{7}|[U]\d{7}.*|LB\d{7}|RTD[\-0-9]*)\b')
+    re_postcodes = re.compile(r'\b([Gg][Ii][Rr] ?0[Aa]{2})|((([A-Za-z][0-9]{1,2})|(([A-Za-z][A-Ha-hJ-Yj-y][0-9]{1,2})|(([A-Za-z][0-9][A-Za-z])|([A-Za-z][A-Ha-hJ-Yj-y][0-9][A-Za-z]?))))\s?[0-9][A-Za-z]{2})\b')
     re_nhs_dividers = re.compile(r'[- ]')
     re_nhs_numbers = re.compile(r'\b(\d{10}|\d{3}-\d{3}-\d{4}|\d{3} \d{3} \d{4})\b')
-    re_ansi_dates = re.compile(r'(?P<year>\d{4})[\\ -]?(?P<month>\d{2})[\\ -]?(?P<day>\d{2})(?:[ T]\d{2}:\d{2}:\d{2})?(?:\.\d+)?(?:[+-]\d{2}:\d{2})?')
+    re_ansi_dates = re.compile(r'\b(?P<year>\d{4})[\\ -]?(?P<month>\d{2})[\\ -]?(?P<day>\d{2})(?:[ T]\d{2}:\d{2}:\d{2})?(?:\.\d+)?(?:[+-]\d{2}:\d{2})?\b')
 
 
     def __init__(self, columns=None):
